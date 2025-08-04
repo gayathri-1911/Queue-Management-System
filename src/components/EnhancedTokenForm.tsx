@@ -30,21 +30,9 @@ export function EnhancedTokenForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted with personName:', personName);
-
-    if (!personName.trim()) {
-      console.log('Person name is empty, returning');
-      return;
-    }
+    if (!personName.trim()) return;
 
     setSubmitting(true);
-    console.log('Submitting token with data:', {
-      personName: personName.trim(),
-      contactNumber: contactNumber.trim() || undefined,
-      serviceTypeId: serviceTypeId || undefined,
-      priorityLevel: priorityEnabled ? priorityLevel : 1
-    });
-
     const { error } = await onSubmit({
       personName: personName.trim(),
       contactNumber: contactNumber.trim() || undefined,
@@ -52,17 +40,12 @@ export function EnhancedTokenForm({
       priorityLevel: priorityEnabled ? priorityLevel : 1
     });
 
-    console.log('Submit result:', { error });
-
     if (!error) {
-      console.log('Success! Clearing form and closing');
       setPersonName('');
       setContactNumber('');
       setServiceTypeId('');
       setPriorityLevel(1);
       onCancel();
-    } else {
-      console.error('Error submitting token:', error);
     }
     setSubmitting(false);
   };
@@ -93,7 +76,6 @@ export function EnhancedTokenForm({
           />
         </div>
 
-        {/* Temporarily hidden - contact_number column doesn't exist yet
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <Phone className="w-4 h-4 inline mr-1" />
@@ -107,7 +89,44 @@ export function EnhancedTokenForm({
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
-        */}
+
+        {serviceTypes.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Settings className="w-4 h-4 inline mr-1" />
+              Service Type (Optional)
+            </label>
+            <select
+              value={serviceTypeId}
+              onChange={(e) => setServiceTypeId(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select service type...</option>
+              {serviceTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name} ({type.estimated_duration_minutes} min)
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {priorityEnabled && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Priority Level
+            </label>
+            <select
+              value={priorityLevel}
+              onChange={(e) => setPriorityLevel(parseInt(e.target.value))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value={1}>Normal Priority</option>
+              <option value={2}>High Priority</option>
+              <option value={3}>VIP Priority</option>
+            </select>
+          </div>
+        )}
 
         {serviceTypes.length > 0 && (
           <div>

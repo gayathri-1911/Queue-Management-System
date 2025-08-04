@@ -3,10 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Token } from '../types';
 import { useNotifications } from './useNotifications';
 
-// Temporary debugging - expose supabase to window for testing
-if (typeof window !== 'undefined') {
-  (window as any).supabase = supabase;
-}
+
 
 export function useTokens(queueId?: string) {
   const [tokens, setTokens] = useState<Token[]>([]);
@@ -57,57 +54,36 @@ export function useTokens(queueId?: string) {
     serviceTypeId?: string;
     priorityLevel?: number;
   }) => {
-    console.log('addToken called with:', tokenData);
-    console.log('queueId:', queueId);
-
-    if (!queueId) {
-      console.error('No queue ID provided');
-      return { error: new Error('Queue ID required') };
-    }
+    if (!queueId) return { error: new Error('Queue ID required') };
 
     // Get the next position
     const maxPosition = Math.max(...tokens.map(t => t.position), 0);
-    console.log('Current tokens:', tokens.length, 'Max position:', maxPosition);
-
-    // Use only the basic fields from the first migration
-    const insertData = {
-      queue_id: queueId,
-      person_name: tokenData.personName,
-      position: maxPosition + 1,
-      status: 'waiting'
-    };
-
-    console.log('Inserting token with data:', insertData);
 
     const { data, error } = await supabase
       .from('tokens')
-      .insert([insertData])
+      .insert([{
+        queue_id: queueId,
+        person_name: tokenData.personName,
+        contact_number: tokenData.contactNumber,
+        service_type_id: tokenData.serviceTypeId,
+        priority_level: tokenData.priorityLevel || 1,
+        position: maxPosition + 1,
+        status: 'waiting'
+      }])
       .select()
       .single();
 
-    console.log('Insert result:', { data, error });
-
-    if (error) {
-      console.error('Error inserting token:', error);
-      console.error('Error details:', error.message, error.details, error.hint);
-      return { data, error };
-    }
-
-    if (data) {
+    if (!error && data) {
       // Log the event
-      console.log('Logging queue event for token:', data.id);
-      const eventResult = await supabase.from('queue_events').insert([{
+      await supabase.from('queue_events').insert([{
         queue_id: queueId,
         token_id: data.id,
         event_type: 'added'
       }]);
 
-      console.log('Event log result:', eventResult);
-
       // Send notification if token is in top 3
       const currentPosition = data.position;
       if (currentPosition <= 3) {
-        console.log('Sending notification for token in position:', currentPosition);
         await sendTokenNearFrontNotification(
           data.id,
           data.person_name,
