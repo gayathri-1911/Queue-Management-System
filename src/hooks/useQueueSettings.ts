@@ -3,29 +3,24 @@ import { supabase } from '../lib/supabase';
 import { QueueSettings } from '../types';
 
 export function useQueueSettings(queueId?: string) {
-  const [settings, setSettings] = useState<QueueSettings | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<QueueSettings | null>({
+    id: 'temp',
+    queue_id: queueId || '',
+    is_paused: false,
+    pause_reason: null,
+    auto_serve_enabled: false,
+    auto_serve_minutes: 5,
+    priority_enabled: false,
+    max_tokens_per_day: null,
+    operating_hours: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!queueId) return;
-
-    fetchSettings();
-
-    const subscription = supabase
-      .channel(`queue_settings:${queueId}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'queue_settings',
-        filter: `queue_id=eq.${queueId}`
-      }, () => {
-        fetchSettings();
-      })
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    // Temporarily disabled - return default settings
+    setLoading(false);
   }, [queueId]);
 
   const fetchSettings = async () => {

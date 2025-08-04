@@ -4,42 +4,31 @@ import { ServiceType } from '../types';
 
 export function useServiceTypes(queueId?: string) {
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Set to false to avoid loading state
 
   useEffect(() => {
-    if (!queueId) return;
-
-    fetchServiceTypes();
-
-    const subscription = supabase
-      .channel(`service_types:${queueId}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'service_types',
-        filter: `queue_id=eq.${queueId}`
-      }, () => {
-        fetchServiceTypes();
-      })
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    // Temporarily disabled - tables don't exist yet
+    setServiceTypes([]);
+    setLoading(false);
   }, [queueId]);
 
   const fetchServiceTypes = async () => {
     if (!queueId) return;
 
-    const { data, error } = await supabase
-      .from('service_types')
-      .select('*')
-      .eq('queue_id', queueId)
-      .eq('is_active', true)
-      .order('name');
+    try {
+      const { data, error } = await supabase
+        .from('service_types')
+        .select('*')
+        .eq('queue_id', queueId)
+        .eq('is_active', true)
+        .order('name');
 
-    if (!error && data) {
-      setServiceTypes(data);
+      if (!error && data) {
+        setServiceTypes(data);
+      }
+    } catch (err) {
+      // Table doesn't exist yet, return empty array
+      setServiceTypes([]);
     }
     setLoading(false);
   };

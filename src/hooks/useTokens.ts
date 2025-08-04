@@ -36,14 +36,22 @@ export function useTokens(queueId?: string) {
   const fetchTokens = async () => {
     if (!queueId) return;
 
-    const { data, error } = await supabase
-      .from('tokens')
-      .select('*')
-      .eq('queue_id', queueId)
-      .order('position', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('tokens')
+        .select('id, queue_id, person_name, position, status, created_at')
+        .eq('queue_id', queueId)
+        .order('position', { ascending: true });
 
-    if (!error && data) {
-      setTokens(data);
+      if (!error && data) {
+        setTokens(data);
+      } else {
+        console.error('Error fetching tokens:', error);
+        setTokens([]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch tokens:', err);
+      setTokens([]);
     }
     setLoading(false);
   };
@@ -61,25 +69,18 @@ export function useTokens(queueId?: string) {
 
     const { data, error } = await supabase
       .from('tokens')
-      .insert([{
+      .insert({
         queue_id: queueId,
         person_name: tokenData.personName,
-        contact_number: tokenData.contactNumber,
-        service_type_id: tokenData.serviceTypeId,
-        priority_level: tokenData.priorityLevel || 1,
         position: maxPosition + 1,
         status: 'waiting'
-      }])
-      .select()
+      })
+      .select('id, queue_id, person_name, position, status, created_at')
       .single();
 
     if (!error && data) {
-      // Log the event
-      await supabase.from('queue_events').insert([{
-        queue_id: queueId,
-        token_id: data.id,
-        event_type: 'added'
-      }]);
+      // Queue events disabled for now
+      console.log('Token added:', data.person_name);
 
       // Send notification if token is in top 3
       const currentPosition = data.position;
@@ -88,7 +89,7 @@ export function useTokens(queueId?: string) {
           data.id,
           data.person_name,
           currentPosition,
-          data.contact_number
+          undefined // contact_number disabled
         );
       }
     }
